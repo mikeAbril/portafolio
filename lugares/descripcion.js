@@ -15,7 +15,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 const contenedor = document.createElement("div");
                 contenedor.className = "contenido";
 
-            
+                const container = document.createElement("div")
+                container.className = "container"
                 const titulo = document.createElement("h1");
                 titulo.textContent = lugar.nombre;
 
@@ -33,6 +34,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
                  let caja2 = document.createElement("div");
                 caja2.className = "caja";
+
+                const titulocaja2 = document.createElement("h2");
+                titulocaja2.textContent = "coordenadas"
 
                 const coordenada1 = document.createElement("h3");
                 coordenada1.textContent = `longuitud: ${lugar.coordenadas.latitud}`;
@@ -95,6 +99,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 contenedor.appendChild(caja5);
                 caja1.appendChild(pais);
                 caja1.appendChild(descripcion);
+
+                container.appendChild(caja2);
+                container.appendChild(caja3);
+                container.appendChild(caja4);
+                container.appendChild(caja5);
+
+                caja2.appendChild(titulocaja2);
                 caja2.appendChild(coordenada1);
                 caja2.appendChild(coordenada2);
 
@@ -111,6 +122,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 caja5.appendChild(tituloCaja5);
                 caja5.appendChild(categoria);
                 
+                contenedor.appendChild(container);
                 contenedor.appendChild(botonVolver);
 
          

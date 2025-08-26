@@ -76,6 +76,10 @@
             background: #0056b3;
         }
 
+        .container{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
   
         @media (max-width: 768px) {
             body {
@@ -126,5 +130,9 @@
             button {
                 padding: 10px 20px;
                 font-size: 0.9rem;
+            }
+
+            .container{
+                grid-template-columns: 1fr;
             }
         }
