@@ -1,58 +1,54 @@
 document.addEventListener("DOMContentLoaded", async () => {
-  const header = document.createElement('header');
-  header.className = 'titulo';
+  const titulo = document.createElement("div");
+  titulo.classList = "titulo"
+  const h1 = document.createElement("h1");
+  h1.textContent = "Lugares Históricos del Mundo";
 
-  const h1 = document.createElement('h1');
-  h1.textContent = 'Lugares Históricos Destacados';
+  const p = document.createElement("p");
+  p.textContent = "Acompáñame a revisar las maravillas del mundo";
 
-  const p = document.createElement('p');
-  p.textContent = 'Descubre los sitios más fascinantes alrededor del mundo';
-
-  header.appendChild(h1);
-  header.appendChild(p);
-  document.body.insertBefore(header, document.querySelector('.principal'));
+  titulo.appendChild(h1);
+  titulo.appendChild(p);
+  document.body.insertBefore(titulo, document.body.firstChild);
 
   try {
     const info = await axios.get("./lugares.json");
     const data = info.data;
 
-    data.forEach((lugar, index) => {
-      setTimeout(() => {
-        const item = document.createElement("div");
-        item.className = "item";
-        item.style.opacity = "0";
-        item.style.animation = `fadeIn 0.8s forwards ${index * 0.1}s`;
+    const world = document.getElementById("world");
 
-        const img = document.createElement("img");
-        img.src = lugar.url_imagen;
-        img.alt = lugar.nombre;
-        img.loading = "lazy";
+    data.forEach((lugar) => {
+      const item = document.createElement("div");
+      item.className = "item";
 
-        const nombre = document.createElement("h1");
-        nombre.textContent = lugar.nombre;
+      const img = document.createElement("img");
+      img.src = lugar.url_imagen;
+      img.alt = lugar.nombre;
 
-        const categoria = document.createElement("p");
-        categoria.textContent = lugar.categoria.nombre;
+      const nombre = document.createElement("h2");
+      nombre.textContent = lugar.nombre;
 
-        const pais = document.createElement("p");
-        pais.textContent = lugar.pais;
+      const pais = document.createElement("p");
+      pais.textContent = lugar.pais;
 
-        const boton = document.createElement("button");
-        boton.textContent = "Ver más";
-        boton.addEventListener("click", () => {
-          window.location.href = `lugHis.html?id=${lugar.id}`;
-        });
+      const boton = document.createElement("button");
+      boton.textContent = "Mirar";
 
-        item.appendChild(nombre);
-        item.appendChild(img);
-        item.appendChild(categoria);
-        item.appendChild(pais);
-        item.appendChild(boton);
+      boton.onclick = () => {
+ 
+      window.location.href = "descripcion.html?id=" + lugar.id;
+      };
 
-        document.querySelector(".principal").appendChild(item);
-      }, index * 100);
+
+      item.appendChild(img);
+      item.appendChild(pais);
+      item.appendChild(nombre);
+      item.appendChild(boton);
+
+ 
+      world.appendChild(item);
     });
   } catch (error) {
-    console.error("Error al cargar los lugares:", error);
+    console.error("Error al cargar JSON:", error);
   }
 });

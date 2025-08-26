@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservas</title>
+
+    <!-- CSS principal -->
+    <link rel="stylesheet" href="stylereservas.css">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+</head>
+<body>
+  <div class="container">
+        <h1>sistema de reservas</h1>
+        <div class="row">
+            <div class="col-12">
+                <div class="btn-header d-flex gap-2">
+                    <button class="btn btn-secondary"><a href="./index.html" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Regresar
+                    </a></button>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalReserva">
+                        <i class="bi bi-calendar-plus"></i> Agregar Reserva
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="modalReserva" tabindex="-1" aria-labelledby="modalReservaLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalReservaLabel">Reserva</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+         <div class="row">
+                            <div class="col-md-6">
+                                <label for="idReserva">ID de la Reserva:</label>
+                                <input type="text" id="idReserva" placeholder="Ingrese ID de reserva" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="nombre">Nombre del Cliente:</label>
+                                <input type="text" id="nombre" placeholder="Nombre completo" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="capacidad">Capacidad de Personas:</label>
+                                <input type="number" id="capacidad" placeholder="Número de personas" min="1" max="20" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="fechaReserva">Fecha de Reserva:</label>
+                                <input type="date" id="fechaReserva" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="horaReserva">Hora de Reserva:</label>
+                                <input type="time" id="horaReserva" min="08:00" max="20:00" required>
+                                <small class="text-muted">Horario de atención: 8:00 AM - 8:00 PM</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="estado">Estado:</label>
+                                <select id="estado" required>
+                                    <option value="pendiente">Pendiente</option>
+                                    <option value="confirmada">Confirmada</option>
+                                    <option value="cancelada">Cancelada</option>
+                                    <option value="finalizada">Finalizada</option>
+                                    <option value="noLlegaron">No Show</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <label for="ocacion">Ocasión/Evento:</label>
+                                <textarea id="ocacion" rows="3" placeholder="Describa la ocasión especial..."></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <label for="nota">Notas/Recomendaciones:</label>
+                                <textarea id="nota" rows="3" placeholder="Notas adicionales, alergias, preferencias..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary" onclick="guardarReserva()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+   
+
+        <!-- Tabla de Reservas -->
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-table"></i> Lista de Reservas</h5>
+                    </div>
+                    <div class="espacio"></div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th># Reserva</th>
+                                        <th>Cliente</th>
+                                        <th>Capacidad</th>
+                                        <th>Fecha</th>
+                                        <th>Hora</th>
+                                        <th>Ocasión</th>
+                                        <th>Notas</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bodyDataReservas">
+                                    <tr>
+                                        <td colspan="9" class="text-center text-muted">No hay reservas registradas</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS de dependencias -->
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Tu JS -->
+    <script src="./reservas.js"></script>
+</body>
+</html>
