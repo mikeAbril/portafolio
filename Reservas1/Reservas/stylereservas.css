@@ -1,0 +1,94 @@
+        body {
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }
+        
+        .container {
+           display: grid;
+           grid-template-columns: 1fr;
+           justify-items: center;
+        }
+        
+        .btn-actions {
+            text-align: center;
+        }
+        
+        .modal-body input,
+        .modal-body select,
+        .modal-body textarea {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        .modal-body label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+            color: #333;
+        }
+        
+        #modalReserva{
+            width: 100%;
+            height: 100%;
+            max-height: 500px;
+            max-width: 300px;
+            background-color: #ccc;
+            margin-bottom: 20px;
+        }
+
+        .btn-primary{
+            width: 200px;
+            height: 50px;
+            background-color: greenyellow;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        .btn-secondary{
+            width: 200px;
+            height: 50px;
+            background-color: #007bff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            color: white;
+            
+        }
+        .table {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .espacio{
+            margin-top: 20px;
+        }
+        .table thead th {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            text-align: center;
+        }
+        
+        .table tbody td {
+            text-align: center;
+            vertical-align: middle;
+        }
+        
+        .btn-header {
+            margin-bottom: 20px;
+        }
+        
+        .estado-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .estado-pendiente { background-color: #fff3cd; color: #856404; }
+        .estado-confirmada { background-color: #d4edda; color: #155724; }
+        .estado-cancelada { background-color: #f8d7da; color: #721c24; }
+        .estado-finalizada { background-color: #d1ecf1; color: #0c5460; }
+        .estado-noLlegaron { background-color: #f0f0f0; color: #495057; }
