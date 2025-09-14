@@ -1,269 +1,459 @@
+// =====================================
+// SISTEMA DE RESERVAS - RESTAURANT HOTEL DIAMONDS
+// =====================================
+
+// Variables globales
 let reservas = [];
 let mesas = [];
+let editandoReserva = false;
+let indiceReservaEditando = -1;
 
-// Array de ocasiones especiales con sus respectivos iconos
+// ✅ RF4.5: Lista de ocasiones especiales (mínimo 8 tipos)
 const ocasionesEspeciales = [
-    { valor: 'cumpleanos', texto: 'Cumpleaños', icono: '🎂' },
-    { valor: 'aniversario', texto: 'Aniversario', icono: '💕' },
-    { valor: 'reunion_negocios', texto: 'Reunión de Negocios', icono: '💼' },
-    { valor: 'cita_romantica', texto: 'Cita Romántica', icono: '🌹' },
-    { valor: 'graduacion', texto: 'Graduación', icono: '🎓' },
-    { valor: 'celebracion_familiar', texto: 'Celebración Familiar', icono: '👨‍👩‍👧‍👦' },
-    { valor: 'primera_cita', texto: 'Primera Cita', icono: '💫' },
-    { valor: 'despedida', texto: 'Despedida', icono: '👋' },
-    { valor: 'ninguna', texto: 'Ninguna', icono: '🍽️' }
+    { valor: "cumpleanos", texto: "Cumpleaños", icono: "🎂" },
+    { valor: "aniversario", texto: "Aniversario", icono: "💕" },
+    { valor: "negocios", texto: "Reunión de Negocios", icono: "💼" },
+    { valor: "cita", texto: "Cita Romántica", icono: "❤️" },
+    { valor: "graduacion", texto: "Graduación", icono: "🎓" },
+    { valor: "compromiso", texto: "Compromiso", icono: "💍" },
+    { valor: "despedida", texto: "Despedida de Soltera/o", icono: "🎉" },
+    { valor: "familia", texto: "Reunión Familiar", icono: "👨‍👩‍👧‍👦" },
+    { valor: "ninguna", texto: "Ninguna", icono: "🍽️" }
 ];
 
-function inicializarDatos() {
-    try {
-        // Obtener mesas del localStorage
-        const mesasGuardadas = localStorage.getItem('mesas');
-        if (mesasGuardadas && mesasGuardadas !== 'null') {
-            mesas = JSON.parse(mesasGuardadas);
-            console.log('Mesas cargadas desde localStorage:', mesas);
-        } else {
-            mesas = [];
-            console.log('No hay mesas en localStorage, inicializando array vacío');
-        }
-        
-        // Obtener reservas del localStorage
-        const reservasGuardadas = localStorage.getItem('reservas');
-        if (reservasGuardadas && reservasGuardadas !== 'null') {
-            reservas = JSON.parse(reservasGuardadas);
-            console.log('Reservas cargadas desde localStorage:', reservas);
-        } else {
-            reservas = [];
-            console.log('No hay reservas en localStorage, inicializando array vacío');
-        }
-        
-        // Inicializar componentes
-        cargarOcasionesEspeciales();
-        cargarMesasDisponibles();
-        pintarReservas();
-        
-    } catch (error) {
-        console.error('Error al cargar datos desde localStorage:', error);
-        reservas = [];
-        mesas = [];
+// =====================================
+// INICIALIZACIÓN
+// =====================================
+
+// ✅ RF1.1: Inicializar al cargar la página
+document.addEventListener("DOMContentLoaded", function() {
+    cargarDatosDeLocalStorage();
+    inicializarOcasiones();
+    cargarMesasDisponibles();
+    pintarReservas();
+    configurarFechaMinima();
+});
+
+// ✅ RNF2.2: Cargar datos de localStorage
+function cargarDatosDeLocalStorage() {
+    // Cargar reservas
+    const reservasGuardadas = localStorage.getItem("reservas");
+    reservas = reservasGuardadas ? JSON.parse(reservasGuardadas) : [];
+    
+    // Cargar mesas
+    const mesasGuardadas = localStorage.getItem("mesas");
+    if (mesasGuardadas) {
+        mesas = JSON.parse(mesasGuardadas);
+    } else {
+        // RF1.1: Inicializar mesas si no existen
+        inicializarMesasDefault();
     }
 }
 
-// Función para cargar ocasiones especiales en el select
-function cargarOcasionesEspeciales() {
-    const select = document.getElementById("ocacion");
-    if (!select) return;
+// ✅ RF1.1 y RF1.2: Inicializar mesas por defecto
+function inicializarMesasDefault() {
+    mesas = [
+        { idMesa: "MESA01", capacidad: 2, ubicacion: "Ventana", estado: "Disponible" },
+        { idMesa: "MESA02", capacidad: 4, ubicacion: "Centro", estado: "Disponible" },
+        { idMesa: "MESA03", capacidad: 6, ubicacion: "Jardín", estado: "Disponible" },
+        { idMesa: "MESA04", capacidad: 4, ubicacion: "Terraza", estado: "Disponible" },
+        { idMesa: "MESA05", capacidad: 8, ubicacion: "Salón VIP", estado: "Disponible" },
+        { idMesa: "MESA06", capacidad: 2, ubicacion: "Bar", estado: "Disponible" },
+        { idMesa: "MESA07", capacidad: 6, ubicacion: "Patio", estado: "Disponible" },
+        { idMesa: "MESA08", capacidad: 4, ubicacion: "Ventana", estado: "Disponible" }
+    ];
+    localStorage.setItem("mesas", JSON.stringify(mesas));
+}
+
+// ✅ Cargar ocasiones en el select
+function inicializarOcasiones() {
+    const selectOcacion = document.getElementById("ocacion");
+    selectOcacion.innerHTML = '<option value="">Seleccione una ocasión</option>';
     
-    select.innerHTML = '<option value="">Seleccione una ocasión</option>';
     ocasionesEspeciales.forEach(ocasion => {
-        select.innerHTML += `<option value="${ocasion.valor}">${ocasion.icono} ${ocasion.texto}</option>`;
+        selectOcacion.innerHTML += `<option value="${ocasion.valor}">${ocasion.icono} ${ocasion.texto}</option>`;
     });
 }
 
-// Función para cargar mesas disponibles en el select
+// ✅ RF4.4: Cargar mesas disponibles en el select
 function cargarMesasDisponibles() {
-    const select = document.getElementById("mesaAsignada");
-    if (!select) return;
+    const selectMesa = document.getElementById("mesaAsignada");
+    selectMesa.innerHTML = '<option value="">Seleccione una mesa</option>';
     
-    select.innerHTML = '<option value="">Seleccione una mesa</option>';
+    const mesasDisponibles = mesas.filter(mesa => mesa.estado === "Disponible");
     
-    mesas.forEach(mesa => {
-        if (mesa.estado === 'Disponible') {
-            select.innerHTML += `<option value="${mesa.idMesa}">Mesa ${mesa.idMesa} - ${mesa.ubicacion} (${mesa.capacidad} personas)</option>`;
-        }
+    mesasDisponibles.forEach(mesa => {
+        selectMesa.innerHTML += `
+            <option value="${mesa.idMesa}">
+                Mesa ${mesa.idMesa} - ${mesa.ubicacion} (Cap: ${mesa.capacidad} personas)
+            </option>
+        `;
     });
 }
 
-// Función para guardar en localStorage
-function guardarEnLocalStorage() {
-    try {
-        localStorage.setItem('mesas', JSON.stringify(mesas));
-        localStorage.setItem('reservas', JSON.stringify(reservas));
-        console.log('Datos guardados en localStorage');
-    } catch (error) {
-        console.error('Error al guardar en localStorage:', error);
-    }
+// ✅ Configurar fecha mínima (hoy + 1 día)
+function configurarFechaMinima() {
+    const fechaInput = document.getElementById("fechaReserva");
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    fechaInput.min = tomorrow.toISOString().split('T')[0];
 }
 
-function guardarReserva() {
-    console.log('🔥 Función guardarReserva ejecutada');
+// =====================================
+// VALIDACIONES (RF3.1 - RF3.5)
+// =====================================
 
+// ✅ RF3.1 - RF3.4: Validación completa del formulario
+function validarFormularioReserva(idReserva, nombre, capacidad, fechaReserva, horaReserva, mesaAsignada) {
+    // RF3.1: Nombre del cliente obligatorio
+    if (!nombre || nombre.trim() === "") {
+        mostrarError("El nombre del cliente es obligatorio");
+        return false;
+    }
+
+    if (nombre.trim().length < 2) {
+        mostrarError("El nombre debe tener al menos 2 caracteres");
+        return false;
+    }
+
+    // Validar que solo contenga letras y espacios
+    if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(nombre.trim())) {
+        mostrarError("El nombre solo puede contener letras y espacios");
+        return false;
+    }
+
+    // RF3.2: Número de personas obligatorio y positivo > 0
+    if (!capacidad || capacidad.trim() === "") {
+        mostrarError("El número de personas es obligatorio");
+        return false;
+    }
+
+    const capacidadNum = parseInt(capacidad);
+    if (isNaN(capacidadNum) || capacidadNum <= 0) {
+        mostrarError("El número de personas debe ser mayor que cero");
+        return false;
+    }
+
+    if (capacidadNum > 20) {
+        mostrarError("El número máximo de personas es 20");
+        return false;
+    }
+
+    // RF3.3: Fecha obligatoria y posterior a la actual
+    if (!fechaReserva) {
+        mostrarError("La fecha de reserva es obligatoria");
+        return false;
+    }
+
+    const fechaSeleccionada = new Date(fechaReserva + 'T00:00:00');
+    const fechaActual = new Date();
+    fechaActual.setHours(0, 0, 0, 0);
+
+    if (fechaSeleccionada <= fechaActual) {
+        mostrarError("La fecha de reserva debe ser posterior a la fecha actual");
+        return false;
+    }
+
+    // RF3.4: Hora obligatoria y en rango 8:00 AM - 8:00 PM
+    if (!horaReserva) {
+        mostrarError("La hora de reserva es obligatoria");
+        return false;
+    }
+
+    if (horaReserva < "08:00" || horaReserva > "20:00") {
+        mostrarError("La hora debe estar entre las 8:00 AM y las 8:00 PM");
+        return false;
+    }
+
+    // Validar mesa asignada
+    if (!mesaAsignada) {
+        mostrarError("Debe seleccionar una mesa");
+        return false;
+    }
+
+    // Validar ID de reserva
+    if (!idReserva || idReserva.trim() === "") {
+        mostrarError("El ID de la reserva es obligatorio");
+        return false;
+    }
+
+    if (idReserva.trim().length < 3) {
+        mostrarError("El ID de la reserva debe tener al menos 3 caracteres");
+        return false;
+    }
+
+    // Validar ID único (solo si no estamos editando o si cambió el ID)
+    const idExiste = reservas.some((r, index) => 
+        r.id === idReserva && (!editandoReserva || index !== indiceReservaEditando)
+    );
+    
+    if (idExiste) {
+        mostrarError("El ID de reserva ya existe. Por favor, use un ID diferente");
+        return false;
+    }
+
+    return true;
+}
+
+// ✅ RF3.5: Validar disponibilidad de mesa
+function validarDisponibilidadMesa(mesaId, fecha, hora, excluirReservaIndex = -1) {
+    // Buscar reservas en la misma mesa, fecha y hora
+    const reservaConflicto = reservas.find((r, index) => 
+        r.mesaAsignada === mesaId && 
+        r.fechaReserva === fecha && 
+        r.horaReserva === hora &&
+        r.estado !== 'cancelada' &&
+        r.estado !== 'finalizada' &&
+        index !== excluirReservaIndex  // Excluir la reserva que estamos editando
+    );
+
+    if (reservaConflicto) {
+        mostrarError(`La mesa ${mesaId} ya está ocupada el ${formatearFecha(fecha)} a las ${hora}`);
+        return false;
+    }
+
+    // Verificar que la mesa tenga capacidad suficiente
+    const mesa = mesas.find(m => m.idMesa === mesaId);
+    if (!mesa) {
+        mostrarError("Mesa no encontrada");
+        return false;
+    }
+
+    const capacidadSolicitada = parseInt(document.getElementById("capacidad").value);
+    if (capacidadSolicitada > mesa.capacidad) {
+        mostrarError(`La mesa ${mesaId} tiene capacidad para ${mesa.capacidad} personas, pero solicita ${capacidadSolicitada}`);
+        return false;
+    }
+
+    return true;
+}
+
+// =====================================
+// GESTIÓN DE RESERVAS
+// =====================================
+
+// ✅ RF2.1 y RF2.2: Guardar reserva (crear o editar)
+function guardarReserva() {
     // Obtener valores del formulario
     const idReserva = document.getElementById("idReserva").value.trim();
     const nombre = document.getElementById("nombre").value.trim();
     const capacidad = document.getElementById("capacidad").value.trim();
-    const fechaReserva = document.getElementById("fechaReserva").value.trim();
-    const horaReserva = document.getElementById("horaReserva").value.trim();
-    const ocacion = document.getElementById("ocacion").value;
-    const nota = document.getElementById("nota").value.trim();
-    const estado = document.getElementById("estado").value;
+    const fechaReserva = document.getElementById("fechaReserva").value;
+    const horaReserva = document.getElementById("horaReserva").value;
     const mesaAsignada = document.getElementById("mesaAsignada").value;
+    const estado = document.getElementById("estado").value;
+    const ocacionValue = document.getElementById("ocacion").value;
+    const nota = document.getElementById("nota").value.trim() || "Sin notas";
 
-    // Validaciones
-    if (!idReserva) {
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Debe ingresar el ID de la reserva",
-        });
+    // Validar formulario
+    if (!validarFormularioReserva(idReserva, nombre, capacidad, fechaReserva, horaReserva, mesaAsignada)) {
         return;
     }
 
-    if (!nombre) {
-        Swal.fire({
-            icon: "error",
-            title: "Error", 
-            text: "Debe ingresar el nombre del cliente",
-        });
+    // Validar disponibilidad de mesa
+    const excluirIndex = editandoReserva ? indiceReservaEditando : -1;
+    if (!validarDisponibilidadMesa(mesaAsignada, fechaReserva, horaReserva, excluirIndex)) {
         return;
     }
 
-    if (!capacidad || capacidad <= 0) {
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Debe ingresar una capacidad válida",
-        });
-        return;
-    }
-
-    if (!fechaReserva) {
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Debe seleccionar una fecha de reserva",
-        });
-        return;
-    }
-
-    // Validar que la fecha sea futura
-    const fechaSeleccionada = new Date(fechaReserva);
-    const fechaActual = new Date();
-    fechaActual.setHours(0, 0, 0, 0); // Reset time to compare only dates
-    
-    if (fechaSeleccionada < fechaActual) {
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "La fecha de reserva debe ser posterior a la fecha actual",
-        });
-        return;
-    }
-
-    if (!horaReserva) {
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Debe seleccionar una hora de reserva",
-        });
-        return;
-    }
-
-    if (horaReserva < "08:00" || horaReserva > "20:00") {
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Selecciona una hora entre las 08:00 y las 20:00.",
-        });
-        return;
-    }
-
-    if (!mesaAsignada) {
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Debe seleccionar una mesa",
-        });
-        return;
-    }
-
-    // Verificar si ya existe una reserva con el mismo ID
-    const existeReserva = reservas.find(r => r.id === idReserva);
-    if (existeReserva) {
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Ya existe una reserva con este ID",
-        });
-        return;
-    }
-
-    // Verificar disponibilidad de mesa en fecha y hora
-    const reservaEnMismaFechaYHora = reservas.find(r => 
-        r.mesaAsignada === mesaAsignada && 
-        r.fechaReserva === fechaReserva && 
-        r.horaReserva === horaReserva &&
-        r.estado !== 'Cancelada' &&
-        r.estado !== 'Finalizada'
-    );
-
-    if (reservaEnMismaFechaYHora) {
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "La mesa ya está ocupada en esa fecha y hora",
-        });
-        return;
-    }
-
-    // Obtener datos de la ocasión seleccionada
-    const ocasionSeleccionada = ocasionesEspeciales.find(oc => oc.valor === ocacion);
-    const ocasionTexto = ocasionSeleccionada ? ocasionSeleccionada.texto : 'Sin especificar';
-    const ocasionIcono = ocasionSeleccionada ? ocasionSeleccionada.icono : '🍽️';
+    // Obtener información de la ocasión
+    const ocasionInfo = ocasionesEspeciales.find(oc => oc.valor === ocacionValue) || ocasionesEspeciales.find(oc => oc.valor === "ninguna");
 
     // Crear objeto reserva
-    let nuevaReserva = {
+    const reserva = {
         id: idReserva,
         nombre: nombre,
         capacidad: parseInt(capacidad),
         fechaReserva: fechaReserva,
         horaReserva: horaReserva,
-        ocacion: ocasionTexto,
-        ocasionIcono: ocasionIcono,
-        nota: nota || 'Sin notas',
+        mesaAsignada: mesaAsignada,
         estado: estado,
-        mesaAsignada: mesaAsignada
+        ocacion: ocasionInfo.texto,
+        ocasionIcono: ocasionInfo.icono,
+        nota: nota
     };
 
-    reservas.push(nuevaReserva);
-    
-    // Cambiar estado de la mesa a "Reservada" si la reserva está confirmada
-    if (estado === 'confirmada') {
-        const mesaIndex = mesas.findIndex(m => m.idMesa === mesaAsignada);
-        if (mesaIndex !== -1) {
-            mesas[mesaIndex].estado = 'Reservada';
+    if (editandoReserva) {
+        // Liberar mesa anterior si cambió
+        const reservaAnterior = reservas[indiceReservaEditando];
+        if (reservaAnterior.mesaAsignada !== mesaAsignada && reservaAnterior.estado !== 'finalizada') {
+            liberarMesa(reservaAnterior.mesaAsignada);
         }
+        
+        // Actualizar reserva existente
+        reservas[indiceReservaEditando] = reserva;
+        mostrarExito(`Reserva ${idReserva} actualizada correctamente`);
+    } else {
+        // Agregar nueva reserva
+        reservas.push(reserva);
+        mostrarExito(`Reserva ${idReserva} creada correctamente`);
     }
 
-    guardarEnLocalStorage();
-    pintarReservas();
-    cargarMesasDisponibles(); // Actualizar select de mesas
-    limpiarFormularioReserva();
+    // Reservar mesa en el sistema
+    if (estado !== 'cancelada' && estado !== 'finalizada') {
+        reservarMesaEnSistema(mesaAsignada);
+    }
 
-    // Cerrar modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('miModal'));
-    if (modal) {
-        modal.hide();
+    // Guardar en localStorage y actualizar UI
+    guardarEnLocalStorage();
+    limpiarFormularioReserva();
+    pintarReservas();
+    cargarMesasDisponibles();
+    cerrarModal();
+}
+
+// ✅ Función para editar reserva
+function editarReserva(indice) {
+    if (indice < 0 || indice >= reservas.length) {
+        mostrarError("Reserva no encontrada");
+        return;
+    }
+
+    const reserva = reservas[indice];
+    
+    // Configurar modo edición
+    editandoReserva = true;
+    indiceReservaEditando = indice;
+    
+    // Llenar formulario con datos existentes
+    document.getElementById("idReserva").value = reserva.id;
+    document.getElementById("nombre").value = reserva.nombre;
+    document.getElementById("capacidad").value = reserva.capacidad;
+    document.getElementById("fechaReserva").value = reserva.fechaReserva;
+    document.getElementById("horaReserva").value = reserva.horaReserva;
+    document.getElementById("nota").value = reserva.nota === 'Sin notas' ? '' : reserva.nota;
+    document.getElementById("estado").value = reserva.estado;
+    document.getElementById("mesaAsignada").value = reserva.mesaAsignada;
+    
+    // Buscar y seleccionar la ocasión
+    const ocasionValor = ocasionesEspeciales.find(oc => oc.texto === reserva.ocacion);
+    if (ocasionValor) {
+        document.getElementById("ocacion").value = ocasionValor.valor;
+    }
+    
+    // Cambiar título del modal
+    const modalTitle = document.querySelector("#miModal .modal-title");
+    if (modalTitle) {
+        modalTitle.textContent = "✏️ Editar Reserva";
+    }
+    
+    // Cambiar texto del botón
+    const btnGuardar = document.querySelector("#miModal .btn-success");
+    if (btnGuardar) {
+        btnGuardar.innerHTML = '<i class="bi bi-pencil"></i> Actualizar Reserva';
+    }
+    
+    // Abrir modal
+    const modal = new bootstrap.Modal(document.getElementById('miModal'));
+    modal.show();
+}
+
+// ✅ RF4.6: Función pagar cuenta (cambia a finalizada y libera mesa)
+function pagarCuenta(index) {
+    const reserva = reservas[index];
+    
+    if (reserva.estado === 'finalizada') {
+        Swal.fire({
+            icon: 'info',
+            title: 'Información',
+            text: 'Esta reserva ya fue finalizada'
+        });
+        return;
+    }
+
+    if (reserva.estado === 'cancelada') {
+        Swal.fire({
+            icon: 'warning',
+            title: 'No se puede procesar',
+            text: 'No se puede procesar el pago de una reserva cancelada'
+        });
+        return;
     }
 
     Swal.fire({
-        icon: 'success',
-        title: '¡Reserva guardada!',
-        text: 'La reserva se ha registrado correctamente.',
-        showConfirmButton: false,
-        timer: 2000
+        title: '💰 ¿Procesar pago?',
+        text: `¿Desea procesar el pago para la reserva de ${reserva.nombre}?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#198754',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '💰 Procesar Pago',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Cambiar estado de reserva a Finalizada
+            reservas[index].estado = 'finalizada';
+            
+            // Cambiar estado de mesa a Disponible
+            liberarMesa(reserva.mesaAsignada);
+            
+            guardarEnLocalStorage();
+            pintarReservas();
+            cargarMesasDisponibles();
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Pago procesado!',
+                text: `La cuenta de ${reserva.nombre} ha sido pagada. Mesa ${reserva.mesaAsignada} ahora está disponible.`,
+                timer: 3000,
+                showConfirmButton: false
+            });
+        }
     });
 }
 
+// ✅ RF4.6: Eliminar reserva
+function eliminarReserva(index) {
+    const reserva = reservas[index];
+    
+    Swal.fire({
+        title: '🗑️ ¿Eliminar reserva?',
+        text: `¿Está seguro de eliminar la reserva de ${reserva.nombre} para el ${formatearFecha(reserva.fechaReserva)}?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '🗑️ Eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Si la reserva tenía una mesa asignada, liberarla
+            if (reserva.mesaAsignada && reserva.estado !== 'finalizada') {
+                liberarMesa(reserva.mesaAsignada);
+            }
+            
+            reservas.splice(index, 1);
+            guardarEnLocalStorage();
+            pintarReservas();
+            cargarMesasDisponibles();
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Reserva eliminada',
+                text: `La reserva de ${reserva.nombre} ha sido eliminada correctamente`,
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+    });
+}
+
+// =====================================
+// VISUALIZACIÓN Y UI (RF4.1 - RF4.6)
+// =====================================
+
+// ✅ RF4.3: Pintar reservas en tabla
 function pintarReservas() {
     const tbody = document.getElementById("bodyDataReservas");
     if (!tbody) return;
     
     tbody.innerHTML = "";
+    actualizarContador();
 
     if (reservas.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="9" class="text-center text-muted p-4">
+                <td colspan="10" class="text-center text-muted p-4">
                     <i class="bi bi-calendar-x" style="font-size: 2rem;"></i>
                     <p class="mt-2">No hay reservas registradas</p>
                     <p>Agrega la primera reserva usando el botón "Agregar Reserva"</p>
@@ -294,7 +484,7 @@ function pintarReservas() {
                         <button class="btn btn-warning btn-sm" onclick="editarReserva(${index})" title="Editar">
                             ✏️
                         </button>
-                        <button class="btn btn-success btn-sm" onclick="pagarCuenta(${index})" title="Pagar" ${item.estado === 'Finalizada' ? 'disabled' : ''}>
+                        <button class="btn btn-success btn-sm" onclick="pagarCuenta(${index})" title="Pagar" ${item.estado === 'finalizada' ? 'disabled' : ''}>
                             💰
                         </button>
                         <button class="btn btn-danger btn-sm" onclick="eliminarReserva(${index})" title="Eliminar">
@@ -307,6 +497,15 @@ function pintarReservas() {
     });
 }
 
+// ✅ Actualizar contador de reservas
+function actualizarContador() {
+    const contador = document.getElementById('contadorReservas');
+    if (contador) {
+        contador.textContent = `Total: ${reservas.length}`;
+    }
+}
+
+// ✅ Obtener badge de estado
 function getEstadoBadge(estado) {
     switch(estado) {
         case 'pendiente': return '<span class="badge bg-warning text-dark">⏳ Pendiente</span>';
@@ -318,8 +517,9 @@ function getEstadoBadge(estado) {
     }
 }
 
+// ✅ Formatear fecha
 function formatearFecha(fecha) {
-    const date = new Date(fecha);
+    const date = new Date(fecha + 'T00:00:00');
     return date.toLocaleDateString('es-CO', {
         year: 'numeric',
         month: 'long',
@@ -327,113 +527,11 @@ function formatearFecha(fecha) {
     });
 }
 
-function pagarCuenta(index) {
-    const reserva = reservas[index];
-    
-    if (reserva.estado === 'Finalizada') {
-        Swal.fire({
-            icon: 'info',
-            title: 'Información',
-            text: 'Esta reserva ya fue finalizada'
-        });
-        return;
-    }
+// =====================================
+// FILTROS (RF6.1 y RF6.2)
+// =====================================
 
-    Swal.fire({
-        title: '¿Procesar pago?',
-        text: `¿Desea procesar el pago para la reserva de ${reserva.nombre}?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#198754',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: '💰 Pagar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Cambiar estado de reserva a Finalizada
-            reservas[index].estado = 'finalizada';
-            
-            // Cambiar estado de mesa a Disponible
-            const mesaIndex = mesas.findIndex(m => m.idMesa === reserva.mesaAsignada);
-            if (mesaIndex !== -1) {
-                mesas[mesaIndex].estado = 'Disponible';
-            }
-            
-            guardarEnLocalStorage();
-            eliminarReserva();
-            cargarMesasDisponibles();
-            
-            Swal.fire({
-                icon: 'success',
-                title: '¡Pago procesado!',
-                text: 'La cuenta ha sido pagada y la mesa está disponible',
-                timer: 2000,
-                showConfirmButton: false
-            });
-        }
-    });
-}
-
-function eliminarReserva(index) {
-    const reserva = reservas[index];
-    
-    Swal.fire({
-        title: '¿Eliminar reserva?',
-        text: `¿Está seguro de eliminar la reserva de ${reserva.nombre}?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: '🗑️ Eliminar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Si la reserva tenía una mesa asignada, liberarla
-            if (reserva.mesaAsignada && reserva.estado !== 'Finalizada') {
-                const mesaIndex = mesas.findIndex(m => m.idMesa === reserva.mesaAsignada);
-                if (mesaIndex !== -1) {
-                    mesas[mesaIndex].estado = 'Disponible';
-                }
-            }
-            
-            reservas.splice(index, 1);
-            guardarEnLocalStorage();
-            pintarReservas();
-            cargarMesasDisponibles();
-            
-            Swal.fire({
-                icon: 'success',
-                title: 'Reserva eliminada',
-                text: 'La reserva ha sido eliminada correctamente',
-                timer: 2000,
-                showConfirmButton: false
-            });
-        }
-    });
-}
-
-function editarReserva(index) {
-    // Esta función se puede implementar posteriormente
-    Swal.fire({
-        icon: 'info',
-        title: 'Función en desarrollo',
-        text: 'La funcionalidad de editar reserva estará disponible próximamente'
-    });
-}
-
-function limpiarFormularioReserva() {
-    document.getElementById("idReserva").value = "";
-    document.getElementById("nombre").value = "";
-    document.getElementById("capacidad").value = "";
-    document.getElementById("fechaReserva").value = "";
-    document.getElementById("horaReserva").value = "";
-    document.getElementById("ocacion").value = "";
-    document.getElementById("nota").value = "";
-    document.getElementById("estado").value = "pendiente";
-    document.getElementById("mesaAsignada").value = "";
-}
-
-// Función para filtrar reservas por fecha
+// ✅ RF6.1: Filtrar por fecha
 function filtrarPorFecha() {
     const fechaFiltro = document.getElementById("filtroFecha").value;
     if (!fechaFiltro) {
@@ -442,10 +540,10 @@ function filtrarPorFecha() {
     }
     
     const reservasFiltradas = reservas.filter(r => r.fechaReserva === fechaFiltro);
-    pintarReservasFiltradas(reservasFiltradas);
+    pintarReservasFiltradas(reservasFiltradas, `Reservas para ${formatearFecha(fechaFiltro)}`);
 }
 
-// Función para filtrar reservas por estado
+// ✅ RF6.2: Filtrar por estado
 function filtrarPorEstado() {
     const estadoFiltro = document.getElementById("filtroEstado").value;
     if (!estadoFiltro) {
@@ -454,25 +552,47 @@ function filtrarPorEstado() {
     }
     
     const reservasFiltradas = reservas.filter(r => r.estado === estadoFiltro);
-    pintarReservasFiltradas(reservasFiltradas);
+    const nombreEstado = getEstadoNombre(estadoFiltro);
+    pintarReservasFiltradas(reservasFiltradas, `Reservas ${nombreEstado}`);
 }
 
-function pintarReservasFiltradas(reservasFiltradas) {
+// ✅ Obtener nombre del estado
+function getEstadoNombre(estado) {
+    switch(estado) {
+        case 'pendiente': return 'Pendientes';
+        case 'confirmada': return 'Confirmadas';
+        case 'cancelada': return 'Canceladas';
+        case 'finalizada': return 'Finalizadas';
+        case 'noLlegaron': return 'No Show';
+        default: return 'Desconocidas';
+    }
+}
+
+// ✅ Pintar reservas filtradas
+function pintarReservasFiltradas(reservasFiltradas, tituloFiltro) {
     const tbody = document.getElementById("bodyDataReservas");
     tbody.innerHTML = "";
+    
+    // Actualizar contador con filtros
+    const contador = document.getElementById('contadorReservas');
+    if (contador) {
+        contador.textContent = `${tituloFiltro}: ${reservasFiltradas.length}`;
+    }
     
     if (reservasFiltradas.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="9" class="text-center text-muted p-4">
-                    No se encontraron reservas con los filtros aplicados
+                <td colspan="10" class="text-center text-muted p-4">
+                    <i class="bi bi-search" style="font-size: 2rem;"></i>
+                    <p class="mt-2">No se encontraron reservas con los filtros aplicados</p>
+                    <button class="btn btn-outline-primary" onclick="limpiarFiltros()">Limpiar Filtros</button>
                 </td>
             </tr>
         `;
         return;
     }
     
-    reservasFiltradas.forEach((item, index) => {
+    reservasFiltradas.forEach((item) => {
         const estadoBadge = getEstadoBadge(item.estado);
         const mesaInfo = mesas.find(m => m.idMesa === item.mesaAsignada);
         const ubicacionMesa = mesaInfo ? mesaInfo.ubicacion : 'N/A';
@@ -494,7 +614,7 @@ function pintarReservasFiltradas(reservasFiltradas) {
                         <button class="btn btn-warning btn-sm" onclick="editarReserva(${indexOriginal})" title="Editar">
                             ✏️
                         </button>
-                        <button class="btn btn-success btn-sm" onclick="pagarCuenta(${indexOriginal})" title="Pagar" ${item.estado === 'Finalizada' ? 'disabled' : ''}>
+                        <button class="btn btn-success btn-sm" onclick="pagarCuenta(${indexOriginal})" title="Pagar" ${item.estado === 'finalizada' ? 'disabled' : ''}>
                             💰
                         </button>
                         <button class="btn btn-danger btn-sm" onclick="eliminarReserva(${indexOriginal})" title="Eliminar">
@@ -507,39 +627,367 @@ function pintarReservasFiltradas(reservasFiltradas) {
     });
 }
 
-// Inicializar cuando se carga la página
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM cargado, inicializando datos de reservas...');
-    inicializarDatos();
-});
+// ✅ Limpiar filtros
+function limpiarFiltros() {
+    document.getElementById("filtroFecha").value = "";
+    document.getElementById("filtroEstado").value = "";
+    pintarReservas();
+}
 
- // Script para actualizar el contador de reservas
-        function actualizarContador() {
-            const contador = document.getElementById('contadorReservas');
-            if (contador) {
-                contador.textContent = `Total: ${reservas.length}`;
-            }
-        }
-        
-        // Actualizar contador cada vez que se pintan las reservas
-        const pintarReservasOriginal = pintarReservas;
-        pintarReservas = function() {
-            pintarReservasOriginal();
-            actualizarContador();
-        };
-        
-        // Auto-seleccionar mesa si viene de la página de mesas
-        document.addEventListener('DOMContentLoaded', function() {
-            const mesaSeleccionada = localStorage.getItem('mesaSeleccionada');
-            if (mesaSeleccionada) {
-                // Esperar un poco para que se carguen las mesas
+// =====================================
+// GESTIÓN DE MESAS
+// =====================================
+
+// ✅ Reservar mesa en sistema
+function reservarMesaEnSistema(mesaId) {
+    const mesaIndex = mesas.findIndex(m => m.idMesa === mesaId);
+    if (mesaIndex !== -1) {
+        mesas[mesaIndex].estado = 'Ocupada';
+        localStorage.setItem("mesas", JSON.stringify(mesas));
+    }
+}
+
+// ✅ Liberar mesa
+function liberarMesa(mesaId) {
+    const mesaIndex = mesas.findIndex(m => m.idMesa === mesaId);
+    if (mesaIndex !== -1) {
+        mesas[mesaIndex].estado = 'Disponible';
+        localStorage.setItem("mesas", JSON.stringify(mesas));
+    }
+}
+
+// =====================================
+// UTILIDADES
+// =====================================
+
+// ✅ RNF3.1: Mostrar errores personalizados (sin alerts HTML)
+function mostrarError(mensaje) {
+    Swal.fire({
+        icon: "error",
+        title: "Error de Validación",
+        text: mensaje,
+        confirmButtonColor: '#dc3545'
+    });
+}
+
+// ✅ Mostrar mensaje de éxito
+function mostrarExito(mensaje) {
+    Swal.fire({
+        icon: "success",
+        title: "¡Éxito!",
+        text: mensaje,
+        timer: 2000,
+        showConfirmButton: false
+    });
+}
+
+// ✅ Resetear modo edición
+function resetearModoEdicion() {
+    editandoReserva = false;
+    indiceReservaEditando = -1;
+    
+    // Cambiar título del modal
+    const modalTitle = document.querySelector("#miModal .modal-title");
+    if (modalTitle) {
+        modalTitle.textContent = "📝 Nueva Reserva";
+    }
+    
+    // Cambiar texto del botón
+    const btnGuardar = document.querySelector("#miModal .btn-success");
+    if (btnGuardar) {
+        btnGuardar.innerHTML = '<i class="bi bi-save"></i> Guardar Reserva';
+    }
+}
+
+// ✅ Limpiar formulario
+function limpiarFormularioReserva() {
+    document.getElementById("idReserva").value = "";
+    document.getElementById("nombre").value = "";
+    document.getElementById("capacidad").value = "";
+    document.getElementById("fechaReserva").value = "";
+    document.getElementById("horaReserva").value = "";
+    document.getElementById("ocacion").value = "";
+    document.getElementById("nota").value = "";
+    document.getElementById("estado").value = "pendiente";
+    document.getElementById("mesaAsignada").value = "";
+    
+    // Resetear modo edición
+    resetearModoEdicion();
+}
+
+// ✅ Cerrar modal con reseteo
+function cerrarModal() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('miModal'));
+    if (modal) {
+        modal.hide();
+    }
+    
+    // Resetear formulario después de cerrar
+    setTimeout(() => {
+        limpiarFormularioReserva();
+    }, 300);
+}
+
+// ✅ RNF2.1: Guardar en localStorage
+function guardarEnLocalStorage() {
+    localStorage.setItem("reservas", JSON.stringify(reservas));
+    localStorage.setItem("mesas", JSON.stringify(mesas));
+}
+
+// =====================================
+// EVENT LISTENERS ADICIONALES
+// =====================================
+
+// ✅ Limpiar formulario cuando se abre el modal para nueva reserva
+document.addEventListener("DOMContentLoaded", function() {
+    const modal = document.getElementById('miModal');
+    if (modal) {
+        modal.addEventListener('show.bs.modal', function (event) {
+            // Si no estamos en modo edición, limpiar formulario
+            if (!editandoReserva) {
                 setTimeout(() => {
-                    const selectMesa = document.getElementById('mesaAsignada');
-                    if (selectMesa) {
-                        selectMesa.value = mesaSeleccionada;
-                    }
-                }, 500);
-                // Limpiar la selección
-                localStorage.removeItem('mesaSeleccionada');
+                    limpiarFormularioReserva();
+                }, 100);
             }
         });
+        
+        // Al cerrar modal, resetear todo
+        modal.addEventListener('hidden.bs.modal', function (event) {
+            limpiarFormularioReserva();
+        });
+    }
+});
+
+// ✅ Validación en tiempo real del formulario
+document.addEventListener("DOMContentLoaded", function() {
+    // Validar nombre en tiempo real
+    const nombreInput = document.getElementById("nombre");
+    if (nombreInput) {
+        nombreInput.addEventListener("blur", function() {
+            const valor = this.value.trim();
+            if (valor && !/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(valor)) {
+                this.classList.add("is-invalid");
+            } else {
+                this.classList.remove("is-invalid");
+            }
+        });
+    }
+    
+    // Validar capacidad en tiempo real
+    const capacidadInput = document.getElementById("capacidad");
+    if (capacidadInput) {
+        capacidadInput.addEventListener("input", function() {
+            const valor = parseInt(this.value);
+            if (this.value && (isNaN(valor) || valor <= 0 || valor > 20)) {
+                this.classList.add("is-invalid");
+            } else {
+                this.classList.remove("is-invalid");
+            }
+        });
+    }
+    
+    // Validar fecha en tiempo real
+    const fechaInput = document.getElementById("fechaReserva");
+    if (fechaInput) {
+        fechaInput.addEventListener("change", function() {
+            const fechaSeleccionada = new Date(this.value + 'T00:00:00');
+            const fechaActual = new Date();
+            fechaActual.setHours(0, 0, 0, 0);
+            
+            if (this.value && fechaSeleccionada <= fechaActual) {
+                this.classList.add("is-invalid");
+            } else {
+                this.classList.remove("is-invalid");
+            }
+        });
+    }
+    
+    // Validar hora en tiempo real
+    const horaInput = document.getElementById("horaReserva");
+    if (horaInput) {
+        horaInput.addEventListener("change", function() {
+            if (this.value && (this.value < "08:00" || this.value > "20:00")) {
+                this.classList.add("is-invalid");
+            } else {
+                this.classList.remove("is-invalid");
+            }
+        });
+    }
+});
+
+// ✅ Función para generar ID automático (opcional)
+function generarIdAutomatico() {
+    const fecha = new Date();
+    const timestamp = fecha.getTime().toString().slice(-6);
+    return `RES${timestamp}`;
+}
+
+// ✅ Botón para generar ID automático
+function asignarIdAutomatico() {
+    const idInput = document.getElementById("idReserva");
+    if (idInput && !editandoReserva) {
+        idInput.value = generarIdAutomatico();
+    }
+}
+
+// =====================================
+// FUNCIONES PARA CONECTAR CON MESAS
+// =====================================
+
+// ✅ Obtener estado actual de mesa
+function obtenerEstadoMesa(mesaId) {
+    const mesa = mesas.find(m => m.idMesa === mesaId);
+    return mesa ? mesa.estado : 'Desconocido';
+}
+
+// ✅ Obtener reservas activas de una mesa
+function obtenerReservasActivasMesa(mesaId) {
+    return reservas.filter(r => 
+        r.mesaAsignada === mesaId && 
+        r.estado !== 'cancelada' && 
+        r.estado !== 'finalizada'
+    );
+}
+
+// ✅ Verificar si mesa está disponible en fecha/hora específica
+function mesaDisponibleEnFechaHora(mesaId, fecha, hora) {
+    const reservaConflicto = reservas.find(r => 
+        r.mesaAsignada === mesaId && 
+        r.fechaReserva === fecha && 
+        r.horaReserva === hora &&
+        r.estado !== 'cancelada' &&
+        r.estado !== 'finalizada'
+    );
+    return !reservaConflicto;
+}
+
+// ✅ Actualizar estado de todas las mesas según reservas
+function actualizarEstadosMesas() {
+    // Primero marcar todas como disponibles
+    mesas.forEach(mesa => {
+        if (mesa.estado !== 'Deshabilitada') {
+            mesa.estado = 'Disponible';
+        }
+    });
+    
+    // Luego marcar como ocupadas las que tienen reservas activas
+    reservas.forEach(reserva => {
+        if (reserva.estado !== 'cancelada' && reserva.estado !== 'finalizada') {
+            const mesaIndex = mesas.findIndex(m => m.idMesa === reserva.mesaAsignada);
+            if (mesaIndex !== -1) {
+                mesas[mesaIndex].estado = 'Ocupada';
+            }
+        }
+    });
+    
+    localStorage.setItem("mesas", JSON.stringify(mesas));
+}
+
+// ✅ Función de inicialización completa al cargar la página
+function inicializarSistemaCompleto() {
+    cargarDatosDeLocalStorage();
+    inicializarOcasiones();
+    actualizarEstadosMesas();  // Sincronizar estados
+    cargarMesasDisponibles();
+    pintarReservas();
+    configurarFechaMinima();
+    
+    console.log("✅ Sistema de reservas inicializado correctamente");
+    console.log(`📊 Reservas cargadas: ${reservas.length}`);
+    console.log(`🪑 Mesas disponibles: ${mesas.filter(m => m.estado === 'Disponible').length}/${mesas.length}`);
+}
+
+// ✅ Ejecutar inicialización cuando se carga la página
+document.addEventListener("DOMContentLoaded", inicializarSistemaCompleto);
+
+// =====================================
+// FUNCIONES DE EXPORTACIÓN/IMPORTACIÓN (OPCIONAL)
+// =====================================
+
+// ✅ Exportar datos a JSON
+function exportarDatos() {
+    const datos = {
+        reservas: reservas,
+        mesas: mesas,
+        fechaExportacion: new Date().toISOString()
+    };
+    
+    const dataStr = JSON.stringify(datos, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `reservas_backup_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    
+    URL.revokeObjectURL(url);
+    
+    mostrarExito('Datos exportados correctamente');
+}
+
+// ✅ Limpiar todos los datos (con confirmación)
+function limpiarTodosLosDatos() {
+    Swal.fire({
+        title: '⚠️ ¿Limpiar todos los datos?',
+        text: 'Esta acción eliminará todas las reservas y restablecerá las mesas. ¡Esta acción no se puede deshacer!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '🗑️ Sí, limpiar todo',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Limpiar datos
+            reservas = [];
+            inicializarMesasDefault();
+            guardarEnLocalStorage();
+            
+            // Actualizar UI
+            pintarReservas();
+            cargarMesasDisponibles();
+            limpiarFiltros();
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Datos limpiados!',
+                text: 'Todos los datos han sido eliminados y las mesas restablecidas',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+    });
+}
+
+// =====================================
+// FUNCIONES DE DEBUG (PARA DESARROLLO)
+// =====================================
+
+// ✅ Mostrar estadísticas del sistema
+function mostrarEstadisticas() {
+    const estadisticas = {
+        totalReservas: reservas.length,
+        reservasPendientes: reservas.filter(r => r.estado === 'pendiente').length,
+        reservasConfirmadas: reservas.filter(r => r.estado === 'confirmada').length,
+        reservasFinalizadas: reservas.filter(r => r.estado === 'finalizada').length,
+        reservasCanceladas: reservas.filter(r => r.estado === 'cancelada').length,
+        totalMesas: mesas.length,
+        mesasDisponibles: mesas.filter(m => m.estado === 'Disponible').length,
+        mesasOcupadas: mesas.filter(m => m.estado === 'Ocupada').length,
+        mesasDeshabilitadas: mesas.filter(m => m.estado === 'Deshabilitada').length
+    };
+    
+    console.table(estadisticas);
+    return estadisticas;
+}
+
+// ✅ Mensaje de confirmación de carga
+console.log("🎉 Sistema de Reservas - Restaurant Hotel Diamonds cargado correctamente");
+console.log("📋 Funcionalidades disponibles:");
+console.log("   ✅ Validaciones RF3.1-RF3.5");
+console.log("   ✅ Gestión completa de reservas RF2.1-RF2.2");
+console.log("   ✅ Visualización RF4.1-RF4.6");
+console.log("   ✅ Filtros RF6.1-RF6.2");
+console.log("   ✅ Persistencia RNF2.1-RNF2.2");
+console.log("   ✅ Mensajes de error personalizados RNF3.1");
