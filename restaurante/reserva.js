@@ -10,15 +10,15 @@ let indiceReservaEditando = -1;
 
 // ✅ RF4.5: Lista de ocasiones especiales (mínimo 8 tipos)
 const ocasionesEspeciales = [
-    { valor: "cumpleanos", texto: "Cumpleaños", icono: "🎂" },
-    { valor: "aniversario", texto: "Aniversario", icono: "💕" },
-    { valor: "negocios", texto: "Reunión de Negocios", icono: "💼" },
-    { valor: "cita", texto: "Cita Romántica", icono: "❤️" },
-    { valor: "graduacion", texto: "Graduación", icono: "🎓" },
-    { valor: "compromiso", texto: "Compromiso", icono: "💍" },
-    { valor: "despedida", texto: "Despedida de Soltera/o", icono: "🎉" },
-    { valor: "familia", texto: "Reunión Familiar", icono: "👨‍👩‍👧‍👦" },
-    { valor: "ninguna", texto: "Ninguna", icono: "🍽️" }
+    { valor: "cumpleanos", texto: "Cumpleaños", icono: "🎂", imagen: "./img/cumpleanos.jpg" },
+    { valor: "aniversario", texto: "Aniversario", icono: "💕", imagen: "./img/aniversario.jpg" },
+    { valor: "negocios", texto: "Reunión de Negocios", icono: "💼", imagen: "./img/negocios.jpg" },
+    { valor: "cita", texto: "Cita Romántica", icono: "❤️", imagen: "./img/cita.jpg" },
+    { valor: "graduacion", texto: "Graduación", icono: "🎓", imagen: "./img/graduacion.jpg" },
+    { valor: "compromiso", texto: "Compromiso", icono: "💍", imagen: "./img/compromiso.jpg" },
+    { valor: "despedida", texto: "Despedida de Soltera/o", icono: "🎉", imagen: "./img/despedida.jpg" },
+    { valor: "familia", texto: "Reunión Familiar", icono: "👨‍👩‍👧‍👦", imagen: "./img/familia.jpg" },
+    { valor: "ninguna", texto: "Ninguna", icono: "🍽️", imagen: "./img/ninguna.jpg" }
 ];
 
 // =====================================
@@ -270,6 +270,7 @@ function guardarReserva() {
         estado: estado,
         ocacion: ocasionInfo.texto,
         ocasionIcono: ocasionInfo.icono,
+        ocacionImagen: ocasionInfo.imagen,
         nota: nota
     };
 
@@ -469,16 +470,16 @@ function pintarReservas() {
         const ubicacionMesa = mesaInfo ? mesaInfo.ubicacion : 'N/A';
         
         tbody.innerHTML += `
-            <tr>
-                <td><strong>${item.id}</strong></td>
-                <td>${item.nombre}</td>
-                <td><span class="badge bg-info">${item.capacidad} personas</span></td>
-                <td>${formatearFecha(item.fechaReserva)}</td>
-                <td><strong>${item.horaReserva}</strong></td>
-                <td>${item.ocasionIcono} ${item.ocacion}</td>
-                <td>Mesa ${item.mesaAsignada} - ${ubicacionMesa}</td>
-                <td><small class="text-muted">${item.nota}</small></td>
-                <td>${estadoBadge}</td>
+           <tr onclick="mostrarDetalleReserva(${index})">
+                    <td><strong>${item.id}</strong></td>
+                    <td>${item.nombre}</td>
+                    <td><span class="badge bg-info">${item.capacidad} personas</span></td>
+                    <td>${formatearFecha(item.fechaReserva)}</td>
+                    <td><strong>${item.horaReserva}</strong></td>
+                    <td>${item.ocasionIcono} ${item.ocacion}</td>
+                    <td>Mesa ${item.mesaAsignada} - ${ubicacionMesa}</td>
+                    <td><small class="text-muted">${item.nota}</small></td>
+                    <td>${estadoBadge}</td>
                 <td>
                     <div class="btn-group" role="group">
                         <button class="btn btn-warning btn-sm" onclick="editarReserva(${index})" title="Editar">
@@ -496,6 +497,9 @@ function pintarReservas() {
         `;
     });
 }
+
+ 
+
 
 // ✅ Actualizar contador de reservas
 function actualizarContador() {
