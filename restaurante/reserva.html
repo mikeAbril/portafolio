@@ -47,7 +47,7 @@
         </div>
 
         <!-- Modal para agregar/editar reserva -->
-        <div class="modal fade" id="miModal" tabindex="-1" aria-hidden="true">
+        <div class="modal fade" id="miModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" >
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header bg-success text-white">
@@ -90,8 +90,8 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label for="estado" class="form-label">Estado: <span class="text-danger">*</span></label>
-                                <select id="estado" class="form-select" required>
+                                <label for="estado" class="form-label">Estado:  </label>
+                                <select id="estado" class="form-select">
                                     <option value="pendiente">⏳ Pendiente</option>
                                     <option value="confirmada">✅ Confirmada</option>
                                     <option value="cancelada">❌ Cancelada</option>

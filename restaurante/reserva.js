@@ -1,4 +1,4 @@
-// =====================================
+// js de reservas // =====================================
 // SISTEMA DE RESERVAS - RESTAURANT HOTEL DIAMONDS
 // =====================================
 
@@ -42,10 +42,10 @@ function cargarDatosDeLocalStorage() {
     
     // Cargar mesas
     const mesasGuardadas = localStorage.getItem("mesas");
-    if (mesasGuardadas) {
+    if (mesasGuardadas && JSON.parse(mesasGuardadas).length > 0) {
         mesas = JSON.parse(mesasGuardadas);
     } else {
-        // RF1.1: Inicializar mesas si no existen
+        // RF1.1: Inicializar mesas si no existen o están vacías
         inicializarMesasDefault();
     }
 }
@@ -63,6 +63,7 @@ function inicializarMesasDefault() {
         { idMesa: "MESA08", capacidad: 4, ubicacion: "Ventana", estado: "Disponible" }
     ];
     localStorage.setItem("mesas", JSON.stringify(mesas));
+    console.log("Mesas inicializadas por defecto y guardadas.");
 }
 
 // ✅ Cargar ocasiones en el select
@@ -80,6 +81,13 @@ function cargarMesasDisponibles() {
     const selectMesa = document.getElementById("mesaAsignada");
     selectMesa.innerHTML = '<option value="">Seleccione una mesa</option>';
     
+    // No filtramos por estado aquí, mostramos todas las mesas 
+    // para que al editar se pueda seleccionar la ya asignada o una nueva.
+    // La validación de disponibilidad se hace en validarDisponibilidadMesa.
+    
+    // Filtramos solo para ver las disponibles en la creación. 
+    // Al editar, se añadirá la mesa actual de la reserva, si es necesario.
+    
     const mesasDisponibles = mesas.filter(mesa => mesa.estado === "Disponible");
     
     mesasDisponibles.forEach(mesa => {
@@ -89,6 +97,21 @@ function cargarMesasDisponibles() {
             </option>
         `;
     });
+    
+    // Si estamos editando, asegúrate de que la mesa asignada actualmente esté en el select
+    if (editandoReserva && indiceReservaEditando !== -1) {
+        const reservaActual = reservas[indiceReservaEditando];
+        const mesaActual = mesas.find(m => m.idMesa === reservaActual.mesaAsignada);
+        
+        // Si la mesa actual no está ya en la lista (ej. estaba 'Ocupada'), la añadimos
+        if (mesaActual && !selectMesa.querySelector(`option[value="${mesaActual.idMesa}"]`)) {
+             selectMesa.innerHTML += `
+                <option value="${mesaActual.idMesa}" selected>
+                    Mesa ${mesaActual.idMesa} - ${mesaActual.ubicacion} (Cap: ${mesaActual.capacidad} personas) - (ACTUALMENTE ASIGNADA)
+                </option>
+            `;
+        }
+    }
 }
 
 // ✅ Configurar fecha mínima (hoy + 1 día)
@@ -196,7 +219,7 @@ function validarFormularioReserva(idReserva, nombre, capacidad, fechaReserva, ho
 }
 
 // ✅ RF3.5: Validar disponibilidad de mesa
-function validarDisponibilidadMesa(mesaId, fecha, hora, excluirReservaIndex = -1) {
+function validarDisponibilidadMesa(mesaId, capacidadSolicitada, fecha, hora, excluirReservaIndex = -1) {
     // Buscar reservas en la misma mesa, fecha y hora
     const reservaConflicto = reservas.find((r, index) => 
         r.mesaAsignada === mesaId && 
@@ -219,7 +242,6 @@ function validarDisponibilidadMesa(mesaId, fecha, hora, excluirReservaIndex = -1
         return false;
     }
 
-    const capacidadSolicitada = parseInt(document.getElementById("capacidad").value);
     if (capacidadSolicitada > mesa.capacidad) {
         mostrarError(`La mesa ${mesaId} tiene capacidad para ${mesa.capacidad} personas, pero solicita ${capacidadSolicitada}`);
         return false;
@@ -238,6 +260,7 @@ function guardarReserva() {
     const idReserva = document.getElementById("idReserva").value.trim();
     const nombre = document.getElementById("nombre").value.trim();
     const capacidad = document.getElementById("capacidad").value.trim();
+    const capacidadNum = parseInt(capacidad); // Usar el número para validación
     const fechaReserva = document.getElementById("fechaReserva").value;
     const horaReserva = document.getElementById("horaReserva").value;
     const mesaAsignada = document.getElementById("mesaAsignada").value;
@@ -250,9 +273,9 @@ function guardarReserva() {
         return;
     }
 
-    // Validar disponibilidad de mesa
+    // Validar disponibilidad de mesa y capacidad
     const excluirIndex = editandoReserva ? indiceReservaEditando : -1;
-    if (!validarDisponibilidadMesa(mesaAsignada, fechaReserva, horaReserva, excluirIndex)) {
+    if (!validarDisponibilidadMesa(mesaAsignada, capacidadNum, fechaReserva, horaReserva, excluirIndex)) {
         return;
     }
 
@@ -263,7 +286,7 @@ function guardarReserva() {
     const reserva = {
         id: idReserva,
         nombre: nombre,
-        capacidad: parseInt(capacidad),
+        capacidad: capacidadNum,
         fechaReserva: fechaReserva,
         horaReserva: horaReserva,
         mesaAsignada: mesaAsignada,
@@ -275,24 +298,33 @@ function guardarReserva() {
     };
 
     if (editandoReserva) {
-        // Liberar mesa anterior si cambió
         const reservaAnterior = reservas[indiceReservaEditando];
-        if (reservaAnterior.mesaAsignada !== mesaAsignada && reservaAnterior.estado !== 'finalizada') {
-            liberarMesa(reservaAnterior.mesaAsignada);
-        }
         
-        // Actualizar reserva existente
+        // 1. Si la mesa cambió, o si el estado anterior implicaba ocupación y el nuevo no, liberamos la anterior.
+        if (reservaAnterior.mesaAsignada !== mesaAsignada) {
+             // Solo liberar si la reserva anterior no estaba cancelada/finalizada
+            if (reservaAnterior.estado !== 'cancelada' && reservaAnterior.estado !== 'finalizada') {
+                liberarMesa(reservaAnterior.mesaAsignada); 
+            }
+        } 
+        
+        // 2. Actualizar reserva existente
         reservas[indiceReservaEditando] = reserva;
         mostrarExito(`Reserva ${idReserva} actualizada correctamente`);
     } else {
-        // Agregar nueva reserva
+        // 3. Agregar nueva reserva
         reservas.push(reserva);
         mostrarExito(`Reserva ${idReserva} creada correctamente`);
     }
 
-    // Reservar mesa en el sistema
+    // 4. Asegurar el estado de la mesa actual/nueva
     if (estado !== 'cancelada' && estado !== 'finalizada') {
-        reservarMesaEnSistema(mesaAsignada);
+        reservarMesaEnSistema(mesaAsignada); // Pone la mesa en 'Ocupada'
+    } else {
+        // Si el estado es de cancelación/finalización, asegurarse de que la mesa se libere 
+        // solo si no hay otras reservas activas para ese mismo día/hora (aunque solo haya una por mesa/fecha/hora)
+        // La función actualizarEstadoMesaSegunReserva es la más completa para esto.
+        actualizarEstadoMesaSegunReserva(mesaAsignada, estado);
     }
 
     // Guardar en localStorage y actualizar UI
@@ -316,6 +348,9 @@ function editarReserva(indice) {
     editandoReserva = true;
     indiceReservaEditando = indice;
     
+    // Recargar mesas disponibles (incluyendo la mesa actual si es necesario)
+    cargarMesasDisponibles();
+    
     // Llenar formulario con datos existentes
     document.getElementById("idReserva").value = reserva.id;
     document.getElementById("nombre").value = reserva.nombre;
@@ -324,7 +359,7 @@ function editarReserva(indice) {
     document.getElementById("horaReserva").value = reserva.horaReserva;
     document.getElementById("nota").value = reserva.nota === 'Sin notas' ? '' : reserva.nota;
     document.getElementById("estado").value = reserva.estado;
-    document.getElementById("mesaAsignada").value = reserva.mesaAsignada;
+    document.getElementById("mesaAsignada").value = reserva.mesaAsignada; // Se establece después de cargar todas las opciones
     
     // Buscar y seleccionar la ocasión
     const ocasionValor = ocasionesEspeciales.find(oc => oc.texto === reserva.ocacion);
@@ -362,11 +397,11 @@ function pagarCuenta(index) {
         return;
     }
 
-    if (reserva.estado === 'cancelada') {
+    if (reserva.estado === 'cancelada' || reserva.estado === 'noLlegaron') {
         Swal.fire({
             icon: 'warning',
             title: 'No se puede procesar',
-            text: 'No se puede procesar el pago de una reserva cancelada'
+            text: 'No se puede procesar el pago de una reserva cancelada o "No Show"'
         });
         return;
     }
@@ -385,8 +420,8 @@ function pagarCuenta(index) {
             // Cambiar estado de reserva a Finalizada
             reservas[index].estado = 'finalizada';
             
-            // Cambiar estado de mesa a Disponible
-            liberarMesa(reserva.mesaAsignada);
+            // Cambiar estado de mesa a Disponible usando la función de coherencia
+            actualizarEstadoMesaSegunReserva(reserva.mesaAsignada, 'finalizada');
             
             guardarEnLocalStorage();
             pintarReservas();
@@ -418,9 +453,9 @@ function eliminarReserva(index) {
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Si la reserva tenía una mesa asignada, liberarla
-            if (reserva.mesaAsignada && reserva.estado !== 'finalizada') {
-                liberarMesa(reserva.mesaAsignada);
+            // Si la reserva tenía una mesa asignada, liberarla usando la función de coherencia
+            if (reserva.mesaAsignada) {
+                actualizarEstadoMesaSegunReserva(reserva.mesaAsignada, 'cancelada'); // Usamos 'cancelada' para forzar liberación si no hay otras activas
             }
             
             reservas.splice(index, 1);
@@ -471,34 +506,73 @@ function pintarReservas() {
         
         tbody.innerHTML += `
            <tr onclick="mostrarDetalleReserva(${index})">
-                    <td><strong>${item.id}</strong></td>
-                    <td>${item.nombre}</td>
-                    <td><span class="badge bg-info">${item.capacidad} personas</span></td>
-                    <td>${formatearFecha(item.fechaReserva)}</td>
-                    <td><strong>${item.horaReserva}</strong></td>
-                    <td>${item.ocasionIcono} ${item.ocacion}</td>
-                    <td>Mesa ${item.mesaAsignada} - ${ubicacionMesa}</td>
-                    <td><small class="text-muted">${item.nota}</small></td>
-                    <td>${estadoBadge}</td>
-                <td>
-                    <div class="btn-group" role="group">
-                        <button class="btn btn-warning btn-sm" onclick="editarReserva(${index})" title="Editar">
-                            ✏️
-                        </button>
-                        <button class="btn btn-success btn-sm" onclick="pagarCuenta(${index})" title="Pagar" ${item.estado === 'finalizada' ? 'disabled' : ''}>
-                            💰
-                        </button>
-                        <button class="btn btn-danger btn-sm" onclick="eliminarReserva(${index})" title="Eliminar">
-                            🗑️
-                        </button>
-                    </div>
-                </td>
-            </tr>
+                       <td><strong>${item.id}</strong></td>
+                       <td>${item.nombre}</td>
+                       <td><span class="badge bg-info">${item.capacidad} personas</span></td>
+                       <td>${formatearFecha(item.fechaReserva)}</td>
+                       <td><strong>${item.horaReserva}</strong></td>
+                       <td>${item.ocasionIcono} ${item.ocacion}</td>
+                       <td>Mesa ${item.mesaAsignada} - ${ubicacionMesa}</td>
+                       <td><small class="text-muted">${item.nota}</small></td>
+                       <td>${estadoBadge}</td>
+                   <td>
+    <div class="btn-group" role="group">
+        <button class="btn btn-warning btn-sm" 
+                onclick="event.stopPropagation(); editarReserva(${index})" 
+                title="Editar"
+                ${['cancelada', 'noLlegaron', 'finalizada'].includes(item.estado) ? 'disabled' : ''}>
+            ✏️
+        </button>
+        <button class="btn btn-success btn-sm" 
+                onclick="event.stopPropagation(); pagarCuenta(${index})" 
+                title="Pagar" 
+                ${['cancelada', 'noLlegaron', 'finalizada'].includes(item.estado) ? 'disabled' : ''}>
+            💰
+        </button>
+        <button class="btn btn-danger btn-sm" 
+                onclick="event.stopPropagation(); eliminarReserva(${index})" 
+                title="Eliminar"
+                ${['cancelada', 'noLlegaron', 'finalizada'].includes(item.estado) ? 'disabled' : ''}>
+            🗑️
+        </button>
+    </div>
+</td>
+           </tr>
         `;
     });
+
+    
 }
 
- 
+// ✅ Mostrar detalle de reserva con imagen
+function mostrarDetalleReserva(index) {
+    const reserva = reservas[index];
+    const mesaInfo = mesas.find(m => m.idMesa === reserva.mesaAsignada);
+    const ubicacionMesa = mesaInfo ? mesaInfo.ubicacion : 'N/A';
+    
+    Swal.fire({
+        title: `📋 Reserva: ${reserva.id}`,
+        html: `
+            <div style="text-align: left;">
+                <img src="${reserva.ocacionImagen}" 
+                    alt="${reserva.ocacion}" 
+                    style="width: 100%; max-height: 300px; object-fit: cover; border-radius: 10px; margin-bottom: 20px;">
+                
+                <p><strong>👤 Cliente:</strong> ${reserva.nombre}</p>
+                <p><strong>👥 Personas:</strong> ${reserva.capacidad}</p>
+                <p><strong>📅 Fecha:</strong> ${formatearFecha(reserva.fechaReserva)}</p>
+                <p><strong>🕐 Hora:</strong> ${reserva.horaReserva}</p>
+                <p><strong>${reserva.ocasionIcono} Ocasión:</strong> ${reserva.ocacion}</p>
+                <p><strong>🪑 Mesa:</strong> ${reserva.mesaAsignada} - ${ubicacionMesa}</p>
+                <p><strong>📝 Notas:</strong> ${reserva.nota}</p>
+                <p><strong>🔷 Estado:</strong> ${reserva.estado}</p>
+            </div>
+        `,
+        width: '600px',
+        confirmButtonText: 'Cerrar',
+        confirmButtonColor: '#198754'
+    });
+}
 
 
 // ✅ Actualizar contador de reservas
@@ -603,7 +677,7 @@ function pintarReservasFiltradas(reservasFiltradas, tituloFiltro) {
         const indexOriginal = reservas.findIndex(r => r.id === item.id);
         
         tbody.innerHTML += `
-            <tr>
+            <tr onclick="mostrarDetalleReserva(${indexOriginal})">
                 <td><strong>${item.id}</strong></td>
                 <td>${item.nombre}</td>
                 <td><span class="badge bg-info">${item.capacidad} personas</span></td>
@@ -615,13 +689,22 @@ function pintarReservasFiltradas(reservasFiltradas, tituloFiltro) {
                 <td>${estadoBadge}</td>
                 <td>
                     <div class="btn-group" role="group">
-                        <button class="btn btn-warning btn-sm" onclick="editarReserva(${indexOriginal})" title="Editar">
+                        <button class="btn btn-warning btn-sm" 
+                                onclick="event.stopPropagation(); editarReserva(${indexOriginal})" 
+                                title="Editar"
+                                ${['cancelada', 'noLlegaron', 'finalizada'].includes(item.estado) ? 'disabled' : ''}>
                             ✏️
                         </button>
-                        <button class="btn btn-success btn-sm" onclick="pagarCuenta(${indexOriginal})" title="Pagar" ${item.estado === 'finalizada' ? 'disabled' : ''}>
+                        <button class="btn btn-success btn-sm" 
+                                onclick="event.stopPropagation(); pagarCuenta(${indexOriginal})" 
+                                title="Pagar" 
+                                ${['cancelada', 'noLlegaron', 'finalizada'].includes(item.estado) ? 'disabled' : ''}>
                             💰
                         </button>
-                        <button class="btn btn-danger btn-sm" onclick="eliminarReserva(${indexOriginal})" title="Eliminar">
+                        <button class="btn btn-danger btn-sm" 
+                                onclick="event.stopPropagation(); eliminarReserva(${indexOriginal})" 
+                                title="Eliminar"
+                                ${['cancelada', 'noLlegaron', 'finalizada'].includes(item.estado) ? 'disabled' : ''}>
                             🗑️
                         </button>
                     </div>
@@ -659,6 +742,48 @@ function liberarMesa(mesaId) {
         localStorage.setItem("mesas", JSON.stringify(mesas));
     }
 }
+
+// ✅ Actualizar estado de mesa en el array 'mesas' basado en el estado de una reserva
+function actualizarEstadoMesaSegunReserva(mesaId, nuevoEstadoReserva) {
+    const mesaIndex = mesas.findIndex(m => m.idMesa === mesaId);
+
+    if (mesaIndex === -1) {
+        console.warn(`Mesa ${mesaId} no encontrada. No se pudo actualizar el estado.`);
+        return;
+    }
+
+    const mesaActual = mesas[mesaIndex];
+
+    // Si la reserva se cancela o finaliza, intentamos liberar la mesa.
+    if (nuevoEstadoReserva === 'cancelada' || nuevoEstadoReserva === 'finalizada') {
+        
+        // Verificamos si hay CUALQUIER otra reserva activa para esta mesa.
+        const otrasReservasActivas = reservas.some(r => 
+            r.mesaAsignada === mesaId && 
+            r.estado !== 'cancelada' &&
+            r.estado !== 'finalizada'
+        );
+
+        if (!otrasReservasActivas) {
+            // Si no hay otras, la liberamos.
+            mesaActual.estado = 'Disponible';
+            console.log(`Mesa ${mesaId} liberada a 'Disponible' debido a ${nuevoEstadoReserva}.`);
+        } else {
+            // Si hay otras reservas activas, la mesa debe permanecer 'Ocupada'.
+            mesaActual.estado = 'Ocupada';
+            console.log(`Mesa ${mesaId} permanece 'Ocupada' ya que otras reservas están activas.`);
+        }
+    } 
+    // Si la reserva está en un estado activo, aseguramos que la mesa esté Ocupada.
+    else if (['pendiente', 'confirmada', 'noLlegaron'].includes(nuevoEstadoReserva)) {
+        mesaActual.estado = 'Ocupada';
+    }
+
+    // Guardar el cambio de estado de las mesas en localStorage
+    localStorage.setItem("mesas", JSON.stringify(mesas));
+    
+}
+
 
 // =====================================
 // UTILIDADES
@@ -762,7 +887,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
-// ✅ Validación en tiempo real del formulario
+// ✅ Validación en tiempo real del formulario (manteniendo tu código)
 document.addEventListener("DOMContentLoaded", function() {
     // Validar nombre en tiempo real
     const nombreInput = document.getElementById("nombre");
@@ -834,164 +959,10 @@ function asignarIdAutomatico() {
     }
 }
 
-// =====================================
-// FUNCIONES PARA CONECTAR CON MESAS
-// =====================================
-
 // ✅ Obtener estado actual de mesa
 function obtenerEstadoMesa(mesaId) {
     const mesa = mesas.find(m => m.idMesa === mesaId);
     return mesa ? mesa.estado : 'Desconocido';
 }
 
-// ✅ Obtener reservas activas de una mesa
-function obtenerReservasActivasMesa(mesaId) {
-    return reservas.filter(r => 
-        r.mesaAsignada === mesaId && 
-        r.estado !== 'cancelada' && 
-        r.estado !== 'finalizada'
-    );
-}
-
-// ✅ Verificar si mesa está disponible en fecha/hora específica
-function mesaDisponibleEnFechaHora(mesaId, fecha, hora) {
-    const reservaConflicto = reservas.find(r => 
-        r.mesaAsignada === mesaId && 
-        r.fechaReserva === fecha && 
-        r.horaReserva === hora &&
-        r.estado !== 'cancelada' &&
-        r.estado !== 'finalizada'
-    );
-    return !reservaConflicto;
-}
-
-// ✅ Actualizar estado de todas las mesas según reservas
-function actualizarEstadosMesas() {
-    // Primero marcar todas como disponibles
-    mesas.forEach(mesa => {
-        if (mesa.estado !== 'Deshabilitada') {
-            mesa.estado = 'Disponible';
-        }
-    });
-    
-    // Luego marcar como ocupadas las que tienen reservas activas
-    reservas.forEach(reserva => {
-        if (reserva.estado !== 'cancelada' && reserva.estado !== 'finalizada') {
-            const mesaIndex = mesas.findIndex(m => m.idMesa === reserva.mesaAsignada);
-            if (mesaIndex !== -1) {
-                mesas[mesaIndex].estado = 'Ocupada';
-            }
-        }
-    });
-    
-    localStorage.setItem("mesas", JSON.stringify(mesas));
-}
-
-// ✅ Función de inicialización completa al cargar la página
-function inicializarSistemaCompleto() {
-    cargarDatosDeLocalStorage();
-    inicializarOcasiones();
-    actualizarEstadosMesas();  // Sincronizar estados
-    cargarMesasDisponibles();
-    pintarReservas();
-    configurarFechaMinima();
-    
-    console.log("✅ Sistema de reservas inicializado correctamente");
-    console.log(`📊 Reservas cargadas: ${reservas.length}`);
-    console.log(`🪑 Mesas disponibles: ${mesas.filter(m => m.estado === 'Disponible').length}/${mesas.length}`);
-}
-
-// ✅ Ejecutar inicialización cuando se carga la página
-document.addEventListener("DOMContentLoaded", inicializarSistemaCompleto);
-
-// =====================================
-// FUNCIONES DE EXPORTACIÓN/IMPORTACIÓN (OPCIONAL)
-// =====================================
-
-// ✅ Exportar datos a JSON
-function exportarDatos() {
-    const datos = {
-        reservas: reservas,
-        mesas: mesas,
-        fechaExportacion: new Date().toISOString()
-    };
-    
-    const dataStr = JSON.stringify(datos, null, 2);
-    const dataBlob = new Blob([dataStr], {type: 'application/json'});
-    
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `reservas_backup_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    
-    URL.revokeObjectURL(url);
-    
-    mostrarExito('Datos exportados correctamente');
-}
-
-// ✅ Limpiar todos los datos (con confirmación)
-function limpiarTodosLosDatos() {
-    Swal.fire({
-        title: '⚠️ ¿Limpiar todos los datos?',
-        text: 'Esta acción eliminará todas las reservas y restablecerá las mesas. ¡Esta acción no se puede deshacer!',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: '🗑️ Sí, limpiar todo',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Limpiar datos
-            reservas = [];
-            inicializarMesasDefault();
-            guardarEnLocalStorage();
-            
-            // Actualizar UI
-            pintarReservas();
-            cargarMesasDisponibles();
-            limpiarFiltros();
-            
-            Swal.fire({
-                icon: 'success',
-                title: '¡Datos limpiados!',
-                text: 'Todos los datos han sido eliminados y las mesas restablecidas',
-                timer: 2000,
-                showConfirmButton: false
-            });
-        }
-    });
-}
-
-// =====================================
-// FUNCIONES DE DEBUG (PARA DESARROLLO)
-// =====================================
-
-// ✅ Mostrar estadísticas del sistema
-function mostrarEstadisticas() {
-    const estadisticas = {
-        totalReservas: reservas.length,
-        reservasPendientes: reservas.filter(r => r.estado === 'pendiente').length,
-        reservasConfirmadas: reservas.filter(r => r.estado === 'confirmada').length,
-        reservasFinalizadas: reservas.filter(r => r.estado === 'finalizada').length,
-        reservasCanceladas: reservas.filter(r => r.estado === 'cancelada').length,
-        totalMesas: mesas.length,
-        mesasDisponibles: mesas.filter(m => m.estado === 'Disponible').length,
-        mesasOcupadas: mesas.filter(m => m.estado === 'Ocupada').length,
-        mesasDeshabilitadas: mesas.filter(m => m.estado === 'Deshabilitada').length
-    };
-    
-    console.table(estadisticas);
-    return estadisticas;
-}
-
-// ✅ Mensaje de confirmación de carga
-console.log("🎉 Sistema de Reservas - Restaurant Hotel Diamonds cargado correctamente");
-console.log("📋 Funcionalidades disponibles:");
-console.log("   ✅ Validaciones RF3.1-RF3.5");
-console.log("   ✅ Gestión completa de reservas RF2.1-RF2.2");
-console.log("   ✅ Visualización RF4.1-RF4.6");
-console.log("   ✅ Filtros RF6.1-RF6.2");
-console.log("   ✅ Persistencia RNF2.1-RNF2.2");
-console.log("   ✅ Mensajes de error personalizados RNF3.1");
+// FIN DEL CÓDIGO CORREGIDO
