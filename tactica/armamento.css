@@ -3,7 +3,7 @@ body{
     margin: 0;
     background-image: url("fondo-armas/fondo-armas.png");
     font-family: Poppins;
-
+   
 }
 .introduce{
     color: white;
@@ -13,6 +13,9 @@ body{
 }
 .seeMore{
     color: white;
+}
+.des{
+    color: whitesmoke;
 }
 :root{
     --item1-transform: translateX(-100%) translateY(-5%) scale(1.5);
