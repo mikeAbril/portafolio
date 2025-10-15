@@ -311,6 +311,7 @@ header nav a{
     padding: 5px 10px;
     letter-spacing: 2px;
     font-weight: 500;
+    color: white;
 }
 .carousel.carousel.showDetail .list .item:nth-child(2) .checkout button:nth-child(2){
     background-color: #0ff; 

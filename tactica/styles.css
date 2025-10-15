@@ -19,6 +19,9 @@ body {
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
 
 }
+h1{
+  margin: 0;
+}
 .container1{
 display: grid;
 justify-content: flex-start;
@@ -72,6 +75,8 @@ gap: 10px;
 }
 
 #descripcion{
+    width: 37vw;
+    height: 200px;
     color: white;
     text-align: center;
     font-size: 24px;
@@ -113,8 +118,8 @@ gap: 10px;
 }
 .carousel-container {
             position: relative;
-            width: 20vw;
-            height: 250px;
+            width: 18vw;
+            height: 230px;
             border: 3px solid #ff6600;
             box-shadow: 0 0 30px rgba(255, 102, 0, 0.4);
             overflow: hidden;
