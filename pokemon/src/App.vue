@@ -62,7 +62,6 @@
       <h2>debilidades del pokemon</h2>
       <div v-for="(deb, index) in debilidades" :key="index">    
           <p v-for="(debilidad, index) in deb.debilidades" :key="index">{{ debilidad }}</p> 
-          <p :class="[caja, it]">{{ it }}</p>
       </div>
     </div>
   </div>
