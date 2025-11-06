@@ -3,7 +3,7 @@
   <div>
  <header>
     <img :src=logoPokemon alt="" class="logo">
-    <input type="text" v-model="busqueda"><button  @click="leerAPI()">🔍</button></input>
+    <input type="text" v-model="busqueda"><button  @click="leerAPI()">🔍</button>
     <nav>
       <ul><h3>home</h3></ul>
       <ul><h3>about</h3></ul>
