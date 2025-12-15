@@ -1,7 +1,8 @@
 <template>
   <div class="body">
-<p class="intentos">intentos/{{ intentos }}</p>
-    <!-- PALABRA OCULTA -->
+    <p class="intentos">Intentos: {{ intentos }}</p>
+
+    <!-- PALABRA -->
     <div class="palabra">
       <span v-for="(letra, index) in mostrar" :key="index">
         {{ letra }}
@@ -31,6 +32,30 @@
       <button class="atras" @click="$router.push('/')">🔙 Atrás</button>
     </div>
 
+    <!-- MODAL GANAR -->
+    <q-dialog v-model="modalGanar">
+      <q-card>
+        <q-card-section class="text-h6 text-center">
+          🎉 ¡GANASTE!
+        </q-card-section>
+        <q-card-actions align="center">
+          <q-btn color="primary" label="Ver Historial" @click="irHistorial" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- MODAL PERDER -->
+    <q-dialog v-model="modalPerder">
+      <q-card>
+        <q-card-section class="text-h6 text-center">
+          ❌ Perdiste <br />
+          La palabra era: <b>{{ palabra }}</b>
+        </q-card-section>
+        <q-card-actions align="center">
+          <q-btn color="negative" label="Ver Historial" @click="irHistorial" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
@@ -42,6 +67,10 @@ export default {
       mostrar: [],
       intentos: 0,
       intentosMax: 0,
+      inicioTiempo: null,
+
+      modalGanar: false,
+      modalPerder: false,
 
       fila1: ["Q","W","E","R","T","Y","U","I","O","P"],
       fila2: ["A","S","D","F","G","H","J","K","L"],
@@ -58,15 +87,13 @@ export default {
       const categoria = localStorage.getItem("categoria");
       const dificultad = localStorage.getItem("dificultad");
 
-      // Definir intentos según dificultad
       if (dificultad === "facil") this.intentosMax = 9;
       else if (dificultad === "medio") this.intentosMax = 7;
-      else if (dificultad === "dificil") this.intentosMax = 5;
+      else this.intentosMax = 5;
 
       this.intentos = this.intentosMax;
 
-      // VECTOR DE PALABRAS
-      const palabrasBase = [
+ const palabrasBase = [
        // ----------------- FRUTAS -----------------
   { nombre: "MANZANA", categoria: "frutas", dificultad: "facil" },
   { nombre: "PERA", categoria: "frutas", dificultad: "facil" },
@@ -271,25 +298,24 @@ export default {
   { nombre: "NANOTECNOLOGIA", categoria: "ciencia", dificultad: "dificil" },
   { nombre: "BIOINGENIERIA", categoria: "ciencia", dificultad: "dificil" }
       ];
-
       const lista = palabrasBase.filter(
         p => p.categoria === categoria && p.dificultad === dificultad
       );
 
       if (lista.length === 0) {
-        alert("NO HAY PALABRAS PARA ESTA CATEGORÍA Y DIFICULTAD");
+        alert("No hay palabras disponibles");
+        this.$router.push("/");
         return;
       }
 
-      // Seleccionar palabra
       const random = lista[Math.floor(Math.random() * lista.length)];
-
       this.palabra = random.nombre.toUpperCase();
 
-      this.mostrar = this.palabra.split("").map(() => "_");
+      this.mostrar = this.palabra.split("").map(l =>
+        l === " " ? " " : "_"
+      );
 
-      console.log("Palabra:", this.palabra);
-      console.log("Mostrar:", this.mostrar);
+      this.inicioTiempo = Date.now();
     },
 
     presionar(letra, event) {
@@ -308,65 +334,253 @@ export default {
         this.intentos--;
 
         if (this.intentos <= 0) {
-          alert("❌ PERDISTE. La palabra era: " + this.palabra);
-          this.$router.push("/");
+          this.guardarHistorial("PERDIÓ");
+          this.modalPerder = true;
           return;
         }
       }
 
       if (!this.mostrar.includes("_")) {
-        alert("🎉 ¡GANASTE!");
-        this.$router.push("/");
+        this.guardarHistorial("GANÓ");
+        this.modalGanar = true;
       }
+    },
+
+    guardarHistorial(resultado) {
+      const historial = JSON.parse(localStorage.getItem("historial")) || [];
+
+      const tiempoFinal = Math.floor(
+        (Date.now() - this.inicioTiempo) / 1000
+      );
+
+      historial.push({
+        nombre: localStorage.getItem("jugador") || "jugador",
+        dificultad: localStorage.getItem("dificultad"),
+        categoria: localStorage.getItem("categoria"),
+        tiempo: tiempoFinal,
+        resultado
+      });
+
+      localStorage.setItem("historial", JSON.stringify(historial));
+    },
+
+    irHistorial() {
+      this.modalGanar = false;
+      this.modalPerder = false;
+      this.$router.push("/historial");
     }
   }
 };
 </script>
 
-
-
 <style>
+/* ====== FONDO GENERAL ====== */
 .body {
-  text-align: center;
-  padding: 20px;
+  min-height: 100vh;
+  padding: 30px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 25px;
+
+  background: radial-gradient(circle at top, #1f2937, #020617);
+  font-family: "Segoe UI", system-ui, sans-serif;
 }
 
+/* ====== CUADRANTE 1 (LIBRE PARA IMÁGENES) ====== */
+.body::before {
+  content: "";
+  grid-column: 1 / 2;
+  grid-row: 1 / 2;
+
+  border-radius: 20px;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.02)
+  );
+  backdrop-filter: blur(10px);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+}
+
+/* ====== INTENTOS ====== */
+.intentos {
+  grid-column: 2 / 3;
+  grid-row: 1 / 2;
+
+  justify-self: end;
+  align-self: center;
+
+  font-size: 18px;
+  font-weight: 600;
+  color: #e5e7eb;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 10px 18px;
+  border-radius: 14px;
+  backdrop-filter: blur(8px);
+}
+
+/* ====== PALABRA ====== */
 .palabra {
-  font-size: 32px;
-  letter-spacing: 10px;
-  margin-bottom: 20px;
+  grid-column: 1 / 3;
+  grid-row: 2 / 3;
+
+  margin: 30px auto;
+  padding: 25px 40px;
+  width: fit-content;
+
+  font-size: 38px;
+  letter-spacing: 14px;
+  font-weight: 700;
+  color: #f9fafb;
+
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
+/* ====== TECLADO ====== */
+.teclado {
+  grid-column: 2 / 3;
+  grid-row: 3 / 4;
+
+  padding: 25px;
+  border-radius: 24px;
+
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0.03)
+  );
+  backdrop-filter: blur(14px);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+}
+
+/* ====== FILAS DEL TECLADO ====== */
 .teclado .fila {
   display: flex;
   justify-content: center;
-  margin: 10px 0;
+  margin: 12px 0;
 }
 
+/* ====== BOTONES ====== */
 button {
-  padding: 10px 12px;
-  margin: 4px;
-  border-radius: 8px;
-  background: #eee;
-  border: 1px solid #bbb;
-  font-weight: bold;
+  min-width: 44px;
+  padding: 12px 14px;
+  margin: 5px;
+
+  border-radius: 12px;
+  border: none;
+
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+
+  background: linear-gradient(145deg, #f9fafb, #d1d5db);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+
   cursor: pointer;
+  transition: all 0.25s ease;
 }
 
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.45);
+}
+
+/* ====== BOTÓN DESHABILITADO ====== */
 button:disabled {
-  background: #8d8d8d;
-  color: white;
+  background: linear-gradient(145deg, #6b7280, #374151);
+  color: #e5e7eb;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
+/* ====== BOTÓN ATRÁS ====== */
 .atras {
-  background: goldenrod;
-  color: white;
-  margin-top: 15px;
+  margin-top: 20px;
+  width: 60%;
+
+  background: linear-gradient(145deg, #fbbf24, #d97706);
+  color: #111827;
+
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 1px;
 }
-.palabra{
-  color: white;
+
+.atras:hover {
+  background: linear-gradient(145deg, #fcd34d, #f59e0b);
 }
-.intentos{
-  color: white;
+
+/* ====== RESPONSIVE ====== */
+@media (max-width: 900px) {
+  .body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto;
+  }
+
+  .body::before {
+    grid-column: 1;
+    grid-row: 1;
+    height: 200px;
+  }
+
+  .intentos {
+    grid-column: 1;
+    justify-self: center;
+    margin-top: 10px;
+  }
+
+  .palabra {
+    letter-spacing: 10px;
+    font-size: 30px;
+  }
+
+  .teclado {
+    grid-column: 1;
+  }
 }
+/* ====== CONTENEDOR DE LA PALABRA ====== */
+.palabra {
+    grid-column: 1 / 3; /* ocupa todo el ancho */
+  grid-row: 2 / 3;    /* va DEBAJO del header y ARRIBA del teclado */
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+
+  font-size: 38px;
+  font-weight: 700;
+  color: #f9fafb;
+
+  background: rgba(255, 255, 255, 0.07);
+  padding: 25px 40px;
+  border-radius: 20px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* ====== CADA LETRA / RAYA ====== */
+.palabra span {
+  width: 42px;
+  height: 56px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-bottom: 4px solid #fbbf24; /* RAYA VISIBLE */
+  color: #f9fafb;
+
+  font-size: 34px;
+  text-transform: uppercase;
+}
+
+/* ====== CUANDO ES ESPACIO ====== */
+.palabra span:empty {
+  border-bottom: none;
+}
+
 </style>
