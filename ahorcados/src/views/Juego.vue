@@ -1,5 +1,5 @@
 <template>
-  <div class="body">
+  <div class="juego">
     <p class="intentos">Intentos: {{ intentos }}</p>
 
     <!-- PALABRA -->
@@ -375,8 +375,8 @@ export default {
 
 <style>
 /* ====== FONDO GENERAL ====== */
-.body {
-  min-height: 100vh;
+.juego {
+   
   padding: 30px;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -388,7 +388,7 @@ export default {
 }
 
 /* ====== CUADRANTE 1 (LIBRE PARA IMÁGENES) ====== */
-.body::before {
+.juego::before {
   content: "";
   grid-column: 1 / 2;
   grid-row: 1 / 2;

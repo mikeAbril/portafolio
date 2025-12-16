@@ -57,7 +57,7 @@ export default {
   /* Fondo global */
 #app {
   background: linear-gradient(135deg, #0f0f0f, #222);
-  min-height: 100vh;
+ 
 }
 
 /* Caja principal más elegante y responsiva */
@@ -65,7 +65,7 @@ export default {
   margin: auto;
   margin-top: 110px;
   width: 95%;
-  max-width: 900px;
+  max-width: none;
 
   background: rgba(255, 255, 255, 0.07);
   border-radius: 25px;
