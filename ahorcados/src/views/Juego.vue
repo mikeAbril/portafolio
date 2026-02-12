@@ -1,5 +1,9 @@
 <template>
   <div class="juego">
+    <p v-if="mostrarPista" class="pista">
+  💡 Pista: {{ pistaTexto }}
+</p>
+
     <p class="intentos">Intentos: {{ intentos }}</p>
 
     <!-- PALABRA -->
@@ -68,6 +72,8 @@ export default {
       intentos: 0,
       intentosMax: 0,
       inicioTiempo: null,
+      pistaTexto: "",
+
 
       modalGanar: false,
       modalPerder: false,
@@ -81,6 +87,12 @@ export default {
   created() {
     this.obtenerPalabra();
   },
+  computed: {
+  mostrarPista() {
+    const dificultad = localStorage.getItem("dificultad");
+    return dificultad === "facil" || dificultad === "medio";
+  }
+},
 
   methods: {
     obtenerPalabra() {
@@ -310,6 +322,8 @@ export default {
 
       const random = lista[Math.floor(Math.random() * lista.length)];
       this.palabra = random.nombre.toUpperCase();
+      this.pistaTexto = `Categoría: ${categoria.toUpperCase()}`;
+
 
       this.mostrar = this.palabra.split("").map(l =>
         l === " " ? " " : "_"
@@ -513,6 +527,20 @@ button:disabled {
 
 .atras:hover {
   background: linear-gradient(145deg, #fcd34d, #f59e0b);
+}
+.pista {
+  grid-column: 1 / 3;
+  text-align: center;
+
+  margin-top: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fbbf24;
+
+  background: rgba(255, 255, 255, 0.08);
+  padding: 10px 18px;
+  border-radius: 14px;
+  backdrop-filter: blur(8px);
 }
 
 /* ====== RESPONSIVE ====== */
